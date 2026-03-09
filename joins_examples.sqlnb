@@ -1,0 +1,389 @@
+cells:
+  - kind: 2
+    value: "-- 1. Create CUSTOMERS Table\r
+
+      CREATE TABLE CUSTOMERS (\r
+
+      \    CUSTOMER_ID NUMBER PRIMARY KEY,\r
+
+      \    FIRST_NAME VARCHAR2(50),\r
+
+      \    LAST_NAME VARCHAR2(50),\r
+
+      \    CITY VARCHAR2(50),\r
+
+      \    PHONE_NUMBER VARCHAR2(20),\r
+
+      \    LOYALTY_POINTS NUMBER\r
+
+      );\r
+
+      \r
+
+      -- 2. Create ORDERS Table\r
+
+      CREATE TABLE ORDERS (\r
+
+      \    ORDER_ID NUMBER PRIMARY KEY,\r
+
+      \    CUSTOMER_ID NUMBER,\r
+
+      \    ORDER_DATE DATE,\r
+
+      \    TOTAL_AMOUNT NUMBER(10, 2),\r
+
+      \    DISCOUNT_AMT NUMBER(10, 2), -- Can be NULL if no discount\r
+
+      \    SHIPPING_DATE DATE          -- Can be NULL if not shipped yet\r
+
+      );\r
+
+      \r
+
+      -- 3. Insert Data with intentional NULL values\r
+
+      -- Customers\r
+
+      INSERT INTO CUSTOMERS VALUES (101, 'John', 'Doe', 'New York', '555-0100',
+      500);\r
+
+      INSERT INTO CUSTOMERS VALUES (102, 'Jane', 'Smith', NULL, '555-0101',
+      120);\r
+
+      INSERT INTO CUSTOMERS VALUES (103, 'Robert', 'Brown', 'Chicago', NULL,
+      0);\r
+
+      INSERT INTO CUSTOMERS VALUES (104, 'Emily', 'Davis', NULL, NULL, NULL); --
+      Lots of NULLs\r
+
+      INSERT INTO CUSTOMERS VALUES (105, 'Michael', 'Wilson', 'Miami',
+      '555-0105', NULL);\r
+
+      \r
+
+      -- Orders\r
+
+      INSERT INTO ORDERS VALUES (5001, 101, DATE '2023-10-01', 150.00, 10.00,
+      DATE '2023-10-03');\r
+
+      INSERT INTO ORDERS VALUES (5002, 102, DATE '2023-10-02', 200.50, NULL,
+      DATE '2023-10-05'); -- No discount\r
+
+      INSERT INTO ORDERS VALUES (5003, 101, DATE '2023-10-05', 75.00, 5.00,
+      NULL); -- Not shipped\r
+
+      INSERT INTO ORDERS VALUES (5004, 104, DATE '2023-10-06', 300.00, NULL,
+      NULL); -- No discount, Not shipped\r
+
+      INSERT INTO ORDERS VALUES (5005, 105, DATE '2023-10-07', 50.00, 0.00, DATE
+      '2023-10-08');\r
+
+      INSERT INTO ORDERS VALUES (5006, NULL, DATE '2023-10-08', 20.00, NULL,
+      DATE '2023-10-09'); -- Orphan order\r
+
+      \r
+
+      COMMIT;"
+    languageId: oracle-sql
+  - kind: 2
+    value: select * from orders
+    languageId: oracle-sql
+  - kind: 2
+    value: select * from customers
+    languageId: oracle-sql
+  - kind: 2
+    value: "-- 1. (Inner Join) Retrieve a list of customers who have placed at least
+      one order. Display Name and Order ID. \r
+
+      -- Note: This excludes customers with no orders and orders with NULL
+      Customer IDs.\r
+
+      SELECT C.FIRST_NAME, C.LAST_NAME, O.ORDER_ID\r
+
+      FROM CUSTOMERS C\r
+
+      INNER JOIN ORDERS O ON C.CUSTOMER_ID = O.CUSTOMER_ID;"
+    languageId: oracle-sql
+  - kind: 2
+    value: "-- 2. (Left Join) List all customers and their Order IDs. Include
+      customers who have not placed any orders. \r
+
+      -- Note: Returns NULL in the Order column for customers like 'Robert' or
+      'Emily'.\r
+
+      SELECT C.FIRST_NAME, O.ORDER_ID\r
+
+      FROM CUSTOMERS C\r
+
+      LEFT JOIN ORDERS O ON C.CUSTOMER_ID = O.CUSTOMER_ID;"
+    languageId: oracle-sql
+  - kind: 2
+    value: "-- 3. (Left Join - Finding Non-Matches) Find customers who have NEVER
+      placed an order. \r
+
+      -- Note: We join, then filter for where the \"Right\" table is NULL.\r
+
+      Select C.FIRST_NAME,C.LAST_NAME , O.ORDER_ID\r
+
+      from Customers C\r
+
+      LEFT JOIN Orders O ON C.Customer_ID = O.CUSTOMER_ID\r
+
+      Where O.order_id is NULL"
+    languageId: oracle-sql
+  - kind: 2
+    value: "-- 4. (Right Join) List all orders and the associated customer name.
+      Include orders that do not have a linked Customer ID. \r
+
+      -- Note: This will show Order 5006, which has a NULL Customer_ID.\r
+
+      Select C.FIRST_NAME,C.LAST_NAME,O.order_id\r
+
+      from Customers C\r
+
+      Right JOIN ORDERS O ON O.Customer_id = C.Customer_ID\r
+
+      Where C.Customer_ID is NULL"
+    languageId: oracle-sql
+  - kind: 2
+    value: "-- 5. (Full Outer Join) List ALL customers and ALL orders. If a customer
+      has no order, show NULLs for order info. \r
+
+      -- If an order has no customer, show NULLs for customer info.\r
+
+      SELECT C.FIRST_NAME, O.Order_id \r
+
+      from Customers C\r
+
+      FULL OUTER JOIN ORDERS O ON c.customer_id = o.customer_ID"
+    languageId: oracle-sql
+  - kind: 2
+    value: "-- 6. (Left Join with NVL) Calculate the total amount spent by each
+      customer. \r
+
+      -- If they haven't bought anything, display 0 instead of NULL.\r
+
+      SELECT C.FIRST_NAME, NVL(SUM(O.TOTAL_AMOUNT), 0) AS TOTAL_SPENT\r
+
+      FROM CUSTOMERS C\r
+
+      LEFT JOIN ORDERS O ON C.CUSTOMER_ID = O.CUSTOMER_ID\r
+
+      GROUP BY C.FIRST_NAME;"
+    languageId: oracle-sql
+  - kind: 2
+    value: "-- 7. (Self Join) Find pairs of customers who live in the same City.\r
+
+      --  Note: We must exclude NULL cities and ensure we don't match a customer
+      to themselves.\r
+
+      SELECT A.FIRST_NAME AS CUST_1, B.FIRST_NAME AS CUST_2, A.CITY\r
+
+      FROM CUSTOMERS A\r
+
+      JOIN CUSTOMERS B ON A.CITY = B.CITY\r
+
+      WHERE A.CUSTOMER_ID = B.CUSTOMER_ID;"
+    languageId: oracle-sql
+  - kind: 2
+    value: "-- 8. (Cross Join) Generate a theoretical list of every customer buying
+      every order (Cartesian Product).\r
+
+      \r
+
+      SELECT C.FIRST_NAME, O.ORDER_ID\r
+
+      FROM CUSTOMERS C\r
+
+      CROSS JOIN ORDERS O;"
+    languageId: oracle-sql
+  - kind: 2
+    value: "-- 9. (Natural Join) Join Customers and Orders automatically based on
+      the common column (CUSTOMER_ID). \r
+
+      -- Note: Oracle does not require table aliases on the common column in a
+      Natural Join.\r
+
+      \r
+
+      SELECT FIRST_NAME, ORDER_ID\r
+
+      FROM CUSTOMERS\r
+
+      NATURAL JOIN ORDERS;\r\n"
+    languageId: oracle-sql
+  - kind: 2
+    value: "-- 10. (Left Join & Filtering) List all Customers and their Order Dates,
+      \r
+
+      -- but only for orders placed after October 5th. Keep customers with NO
+      orders in the list. \r
+
+      -- Note: The condition must be in the ON clause, not WHERE, to preserve
+      the Left Join behavior for non-matching rows.\r
+
+      \r
+
+      SELECT C.FIRST_NAME, O.ORDER_DATE\r
+
+      FROM CUSTOMERS C\r
+
+      LEFT JOIN ORDERS O ON C.CUSTOMER_ID = O.CUSTOMER_ID AND O.ORDER_DATE >
+      DATE '2023-10-05';\r\n"
+    languageId: oracle-sql
+  - kind: 2
+    value: "-- 11. (Full Join - Exclusive) Find records that are EITHER a Customer
+      without an order \r
+
+      -- OR an Order without a Customer (The \"Anti-Join\" of both sides).\r
+
+      \r
+
+      SELECT C.CUSTOMER_ID AS C_ID, O.ORDER_ID\r
+
+      FROM CUSTOMERS C\r
+
+      FULL OUTER JOIN ORDERS O ON C.CUSTOMER_ID = O.CUSTOMER_ID\r
+
+      WHERE C.CUSTOMER_ID IS NULL OR O.CUSTOMER_ID IS NULL;"
+    languageId: oracle-sql
+  - kind: 2
+    value: "-- 12. (Inner Join with Aggregates) Find the average loyalty points of
+      customers who have actually placed an order. \r
+
+      -- Note: Distinct ensures we don't double count points if a customer
+      ordered twice.\r
+
+      \r
+
+      SELECT AVG(DISTINCT C.LOYALTY_POINTS)\r
+
+      FROM CUSTOMERS C\r
+
+      JOIN ORDERS O ON C.CUSTOMER_ID = O.CUSTOMER_ID;\r\n"
+    languageId: oracle-sql
+  - kind: 2
+    value: "-- 13. (Left Join with Coalesce) Display a report: \"Customer Name -
+      Order ID\". If there is no order, display \"Customer Name - No Order\".\r
+
+      \r
+
+      SELECT C.FIRST_NAME || ' - ' || COALESCE(TO_CHAR(O.ORDER_ID), 'No Order')
+      AS REPORT_LOG\r
+
+      FROM CUSTOMERS C\r
+
+      LEFT JOIN ORDERS O ON C.CUSTOMER_ID = O.CUSTOMER_ID;\r\n"
+    languageId: oracle-sql
+  - kind: 2
+    value: "-- 14. (Self Join on Inequality) Find pairs of orders where the first
+      order has a higher amount than the second order.\r
+
+      \r
+
+      SELECT O1.ORDER_ID AS HIGH_VAL_ORDER, O2.ORDER_ID AS LOW_VAL_ORDER\r
+
+      FROM ORDERS O1\r
+
+      JOIN ORDERS O2 ON O1.TOTAL_AMOUNT > O2.TOTAL_AMOUNT;\r\n"
+    languageId: oracle-sql
+  - kind: 2
+    value: "-- 15. (Left Join) Count how many orders each customer has made. \r
+
+      -- Note: COUNT(O.ORDER_ID) is safer than COUNT(*) because it returns 0 for
+      NULLs.\r
+
+      \r
+
+      SELECT C.FIRST_NAME, COUNT(O.ORDER_ID) AS ORDER_COUNT\r
+
+      FROM CUSTOMERS C\r
+
+      LEFT JOIN ORDERS O ON C.CUSTOMER_ID = O.CUSTOMER_ID\r
+
+      GROUP BY C.FIRST_NAME;"
+    languageId: oracle-sql
+  - kind: 2
+    value: "\r
+
+      -- 16. (Right Join with Date Logic) List all orders and the Customer City.
+      \r
+
+      -- If the Customer is NULL (orphan order), display 'Unknown City'.\r
+
+      \r
+
+      SELECT O.ORDER_ID, NVL(C.CITY, 'Unknown City')\r
+
+      FROM CUSTOMERS C\r
+
+      RIGHT JOIN ORDERS O ON C.CUSTOMER_ID = O.CUSTOMER_ID;\r\n"
+    languageId: oracle-sql
+  - kind: 2
+    value: "-- 17. (Non-Equi Join) Find customers whose Loyalty Points are greater
+      than the Total Amount of any single order. \r
+
+      -- Note: Joining based on value comparison rather than ID equality.\r
+
+      \r
+
+      SELECT DISTINCT C.FIRST_NAME, C.LOYALTY_POINTS, O.TOTAL_AMOUNT\r
+
+      FROM CUSTOMERS C\r
+
+      JOIN ORDERS O ON C.LOYALTY_POINTS > O.TOTAL_AMOUNT;\r\n"
+    languageId: oracle-sql
+  - kind: 2
+    value: "-- 18. (Left Join) List Customers and their \"Shipping Status\". If the
+      order exists but Shipping Date is NULL, \r
+
+      -- show 'Pending'. If no order exists, show 'N/A'.\r
+
+      \r
+
+      SELECT C.FIRST_NAME,\r
+
+      \       CASE\r
+
+      \           WHEN O.ORDER_ID IS NULL THEN 'N/A'\r
+
+      \           WHEN O.SHIPPING_DATE IS NULL THEN 'Pending'\r
+
+      \           ELSE 'Shipped'\r
+
+      \       END AS STATUS\r
+
+      FROM CUSTOMERS C\r
+
+      LEFT JOIN ORDERS O ON C.CUSTOMER_ID = O.CUSTOMER_ID;\r\n"
+    languageId: oracle-sql
+  - kind: 2
+    value: "-- 19. (Using USING) Perform an Inner Join using the USING clause
+      instead of ON. \r
+
+      -- Note: This works because both tables share the column name
+      CUSTOMER_ID.\r
+
+      \r
+
+      SELECT FIRST_NAME, ORDER_ID\r
+
+      FROM CUSTOMERS\r
+
+      JOIN ORDERS USING (CUSTOMER_ID);\r\n"
+    languageId: oracle-sql
+  - kind: 2
+    value: "-- 20. (Multiple Join Conditions) Join Customers and Orders where the
+      Customer ID matches AND the Customer has a valid City (City is not
+      null).\r
+
+      \r
+
+      SELECT C.FIRST_NAME, O.ORDER_ID\r
+
+      FROM CUSTOMERS C\r
+
+      JOIN ORDERS O ON C.CUSTOMER_ID = O.CUSTOMER_ID\r
+
+      WHERE C.CITY IS NOT NULL;"
+    languageId: oracle-sql
